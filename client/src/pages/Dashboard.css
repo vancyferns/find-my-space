@@ -1,0 +1,42 @@
+/* Dashboard.js styles */
+.dashboard-container {
+  padding: 32px;
+  background-color: #f9fafb;
+}
+
+.dashboard-header {
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 24px;
+  color: #111827;
+}
+
+.controls-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+}
+
+.label-select {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.event-select {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.summary-stats {
+  text-align: right;
+  color: #6b7280;
+}
+
+.summary-stats strong {
+  font-weight: 700;
+  color: #1f2937;
+}

@@ -1,28 +1,61 @@
-import React, { useState } from "react";
-import { getEvents, getParking, saveParking } from "../Data/SeedData";
+import React, { useState, useEffect } from "react";
+import { API_BASE_URL } from "../config";
 
 export default function AddParking() {
-  const events = getEvents();
+  const [events, setEvents] = useState([]);
   const [form, setForm] = useState({
     name: "",
     address: "",
-    eventId: events[0]?.id || "",
+    eventId: "",
     slots: 10,
     available: 10,
     pricePerHour: 50
   });
 
-  function handleSubmit(e) {
+  // Load events from backend
+  useEffect(() => {
+    async function fetchEvents() {
+      try {
+        const res = await fetch(`${API_BASE_URL}/events`);
+        const data = await res.json();
+        setEvents(data);
+        if (data.length > 0) {
+          setForm(f => ({ ...f, eventId: data[0].id || data[0]._id }));
+        }
+      } catch (err) {
+        console.error("Error fetching events:", err);
+      }
+    }
+    fetchEvents();
+  }, []);
+
+  async function handleSubmit(e) {
     e.preventDefault();
-    const existing = getParking();
-    const newItem = { ...form, id: `p${Date.now()}` };
-    existing.push(newItem);
-    saveParking(existing);
-    alert("Parking saved (local demo).");
-    // clear form
-    setForm({ name: "", address: "", eventId: events[0]?.id || "", slots: 10, available: 10, pricePerHour: 50 });
-    // reload to show immediately
-    window.location.href = "/";
+    try {
+      const res = await fetch(`${API_BASE_URL}/parking`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form)
+      });
+      if (res.ok) {
+        alert("Parking saved successfully.");
+        setForm({
+          name: "",
+          address: "",
+          eventId: events[0]?.id || events[0]?._id || "",
+          slots: 10,
+          available: 10,
+          pricePerHour: 50
+        });
+        window.location.href = "/";
+      } else {
+        const errorData = await res.json();
+        alert(`Error: ${errorData.error || "Unable to save"}`);
+      }
+    } catch (err) {
+      console.error("Error saving parking:", err);
+      alert("Failed to connect to backend.");
+    }
   }
 
   return (
@@ -37,7 +70,11 @@ export default function AddParking() {
 
         <label style={{ display: "block", marginBottom: 6 }}>Event</label>
         <select value={form.eventId} onChange={(e) => setForm({...form, eventId: e.target.value})} style={inputStyle}>
-          {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name} — {ev.date}</option>)}
+          {events.map(ev => (
+            <option key={ev.id || ev._id} value={ev.id || ev._id}>
+              {ev.name} — {ev.date}
+            </option>
+          ))}
         </select>
 
         <label style={{ display: "block", marginBottom: 6 }}>Total slots</label>

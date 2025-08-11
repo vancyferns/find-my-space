@@ -1,6 +1,5 @@
-
-import React,{ useState,useEffect,NavLink } from "react";
-import { useNavigate,useParams } from "react-router-dom";
+import React,{ useState,useEffect } from "react";
+import { useNavigate,useParams,NavLink } from "react-router-dom";
 
 function Bookings({ loginUserId, bookings, parkingSpots, handleVacateSpace }) {
     const navigate = useNavigate();
@@ -14,13 +13,15 @@ function Bookings({ loginUserId, bookings, parkingSpots, handleVacateSpace }) {
         spotLocation: spot ? spot.locationId : 'Unknown Location',
       };
     });
-  
+  
     if (!loginUserId) {
         return (
             <div className="bg-white p-6 rounded-lg shadow-md text-center">
                 <h2 className="text-2xl font-bold text-gray-800 mb-4">You are not signed in.</h2>
                 <p className="text-gray-500 mb-4">Please sign in with your User ID to view your bookings.</p>
-                <NavLink to="/signin" className="bg-blue-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+                <NavLink 
+                  to="/signin" 
+                  className="inline-block border-2 border-blue-600 text-blue-600 py-2 px-4 rounded-lg font-semibold hover:border-blue-700 hover:text-blue-700 transition-colors">
                     Sign In
                 </NavLink>
             </div>

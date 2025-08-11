@@ -33,7 +33,7 @@ import Bookings from "./pages/Bookings";
 import SignInPage from "./pages/SignInPage";
 import PlaceholderPage from "./pages/PlaceholderPage";
 import Footer from "./components/Footer";
-
+import { firebaseConfig } from './config';
 // -----------------------------------------------------------------------------
 // Main App Component
 // -----------------------------------------------------------------------------
@@ -73,16 +73,6 @@ function App() {
   useEffect(() => {
     const initializeFirebase = async () => {
       try {
-        // Your Firebase config here
-        const firebaseConfig = {
-          apiKey: "AIzaSyC6P7I9OA3SOjuS-i7PjsRBf16a6wOaWN0",
-          authDomain: "find-my-space-1c229.firebaseapp.com",
-          projectId: "find-my-space-1c229",
-          storageBucket: "find-my-space-1c229.firebasestorage.app",
-          messagingSenderId: "220141428049",
-          appId: "1:220141428049:web:9c4318df6533b88c90c770",
-          measurementId: "G-PM9D8H4V1M"
-        };
         
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : '';
@@ -127,20 +117,12 @@ function App() {
     const locationsUnsub = onSnapshot(locationsCollection, (snapshot) => {
       const fetchedLocations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setLocations(fetchedLocations);
-      if (fetchedLocations.length === 0) {
-        setDoc(doc(locationsCollection, "l1"), { name: "Anjuna" });
-        setDoc(doc(locationsCollection, "l2"), { name: "Vagator" });
-      }
     });
 
     const parkingCollection = collection(db, `artifacts/${appId}/public/data/parking_spots`);
     const parkingUnsub = onSnapshot(parkingCollection, (snapshot) => {
       const fetchedParking = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setParkingSpots(fetchedParking);
-      if (fetchedParking.length === 0) {
-        addDoc(parkingCollection, { locationId: "l2", name: "Vagator Field 1", slots: 100, available: 45 });
-        addDoc(parkingCollection, { locationId: "l1", name: "Anjuna Beach Parking", slots: 50, available: 20 });
-      }
     });
 
     return () => {
@@ -148,6 +130,70 @@ function App() {
       parkingUnsub();
     };
   }, [isAuthReady, db, appId]);
+
+  // useEffect to seed initial data for multiple locations
+  useEffect(() => {
+    if (!isAuthReady || !db || locations.length === 0) return;
+
+    // Define all initial data here.
+     const initialData = [{}];
+
+
+// ... then use this new `initialData` array in your `uploadInitialData` function.
+
+   const uploadInitialData = async () => {
+  const locationsCollection = collection(db, `artifacts/${appId}/public/data/locations`);
+  const parkingCollection = collection(db, `artifacts/${appId}/public/data/parking_spots`);
+  
+  for (const location of initialData) {
+    // Check if the location already exists
+    const existingLocation = locations.find(loc => loc.name === location.name);
+    
+    if (!existingLocation) {
+      // Location does not exist, so add it
+      const newLocationRef = doc(locationsCollection);
+      const newLocationId = newLocationRef.id;
+      
+      await setDoc(newLocationRef, { name: location.name });
+      
+      // Add all parking spots for the new location
+      for (const spot of location.data) {
+        const newSpot = {
+          locationId: newLocationId,
+          name: spot.Name_of_parking_place,
+          slots: spot.capacity,
+          available: spot.capacity,
+          pricePerHour: spot.Type_of_parking === "Paid" ? 1 : 0,
+          typeOfVehicle: spot.Type_of_vehicle,
+        };
+        await addDoc(parkingCollection, newSpot);
+      }
+      console.log(`Added all data for new location: ${location.name}`);
+    } else {
+      // Location exists, check for any new parking spots and add them
+      const existingSpotsInLocation = parkingSpots.filter(spot => spot.locationId === existingLocation.id);
+      const existingSpotNames = new Set(existingSpotsInLocation.map(spot => spot.name));
+      
+      for (const spot of location.data) {
+        if (!existingSpotNames.has(spot.Name_of_parking_place)) {
+          const newSpot = {
+            locationId: existingLocation.id,
+            name: spot.Name_of_parking_place,
+            slots: spot.capacity,
+            available: spot.capacity,
+            pricePerHour: spot.Type_of_parking === "Paid" ? 1 : 0,
+            typeOfVehicle: spot.Type_of_vehicle,
+          };
+          await addDoc(parkingCollection, newSpot);
+          console.log(`Added new spot to existing location (${location.name}): ${newSpot.name}`);
+        }
+      }
+    }
+  }
+};
+uploadInitialData();
+
+  }, [isAuthReady, db, appId, locations, parkingSpots]);
 
   // Listener for bookings of the logged-in user
   useEffect(() => {

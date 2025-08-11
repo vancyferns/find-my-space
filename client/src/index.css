@@ -8,6 +8,18 @@ body {
   background: #f8fafc;
   color: #111827;
 }
-a { color: var(--accent); text-decoration: none; }
-button { cursor: pointer; }
-.container { max-width: 1100px; margin: 0 auto; padding: 16px; }
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+button {
+  cursor: pointer;
+  color: #fff; /* Fix: Set button text color to white */
+
+}
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 16px;
+}
+

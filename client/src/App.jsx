@@ -1,8 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, NavLink, useNavigate, useParams, useLocation } from 'react-router-dom';
-
-
-// inside <Routes>
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
 // Firebase imports
 import { initializeApp } from 'firebase/app';
@@ -37,28 +34,22 @@ import SignInPage from "./pages/SignInPage";
 import PlaceholderPage from "./pages/PlaceholderPage";
 import Footer from "./components/Footer";
 import { firebaseConfig } from './config';
-// -----------------------------------------------------------------------------
-// Main App Component
-// -----------------------------------------------------------------------------
+
 function App() {
-  // State for Firebase services and user information.
   const [db, setDb] = useState(null);
   const [auth, setAuth] = useState(null);
-  const [firebaseUser, setFirebaseUser] = useState(null); // The authenticated Firebase user object.
+  const [firebaseUser, setFirebaseUser] = useState(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [appId, setAppId] = useState('');
 
-  // State for user-specific data and UI.
   const [locations, setLocations] = useState([]);
   const [parkingSpots, setParkingSpots] = useState([]);
   const [bookings, setBookings] = useState([]);
-  const [loginUserId, setLoginUserId] = useState(''); // The user ID used for viewing bookings.
+  const [loginUserId, setLoginUserId] = useState('');
 
-  // State for UI feedback.
   const [showModal, setShowModal] = useState(false);
   const [modalContent, setModalContent] = useState({});
 
-  // Function to show a custom modal for user notifications.
   const openModal = (title, message, isSuccess = true) => {
     setModalContent({ title, message, isSuccess });
     setShowModal(true);
@@ -66,17 +57,15 @@ function App() {
 
   const closeModal = () => {
     setShowModal(false);
-    // Clear loginUserId on modal close if the message indicates a new ID was created.
     if (modalContent.isNewUser) {
       setLoginUserId(modalContent.newUserUid);
     }
   };
 
-  // Main useEffect for Firebase initialization and auth state management.
+  // Firebase initialization
   useEffect(() => {
     const initializeFirebase = async () => {
       try {
-        
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : '';
 
@@ -88,7 +77,6 @@ function App() {
         setAuth(authInstance);
         setDb(dbInstance);
 
-        // Sign-in attempts
         if (initialAuthToken) {
           try {
             await signInWithCustomToken(authInstance, initialAuthToken);
@@ -112,7 +100,7 @@ function App() {
     initializeFirebase();
   }, []);
 
-  // Listener for locations and parking spots
+  // Realtime listeners for locations and parking spots
   useEffect(() => {
     if (!isAuthReady || !db) return;
 
@@ -134,77 +122,71 @@ function App() {
     };
   }, [isAuthReady, db, appId]);
 
-  // useEffect to seed initial data for multiple locations
+  // Seed initial data (safe version)
   useEffect(() => {
-    if (!isAuthReady || !db || locations.length === 0) return;
+    if (!isAuthReady || !db) return;
+    if (locations.length > 0) return; // skip if already exists
 
-    // Define all initial data here.
-     const initialData = [{}];
-
-
-// ... then use this new `initialData` array in your `uploadInitialData` function.
-
-   const uploadInitialData = async () => {
-  const locationsCollection = collection(db, `artifacts/${appId}/public/data/locations`);
-  const parkingCollection = collection(db, `artifacts/${appId}/public/data/parking_spots`);
-  
-  for (const location of initialData) {
-    // Check if the location already exists
-    const existingLocation = locations.find(loc => loc.name === location.name);
-    
-    if (!existingLocation) {
-      // Location does not exist, so add it
-      const newLocationRef = doc(locationsCollection);
-      const newLocationId = newLocationRef.id;
-      
-      await setDoc(newLocationRef, { name: location.name });
-      
-      // Add all parking spots for the new location
-      for (const spot of location.data) {
-        const newSpot = {
-          locationId: newLocationId,
-          name: spot.Name_of_parking_place,
-          slots: spot.capacity,
-          available: spot.capacity,
-          pricePerHour: spot.Type_of_parking === "Paid" ? 1 : 0,
-          typeOfVehicle: spot.Type_of_vehicle,
-        };
-        await addDoc(parkingCollection, newSpot);
+    const initialData = [
+      {
+        name: "Downtown Parking",
+        data: [
+          {
+            Name_of_parking_place: "Main Street Lot",
+            capacity: 50,
+            Type_of_parking: "Paid",
+            Type_of_vehicle: "Car"
+          },
+          {
+            Name_of_parking_place: "Riverfront Garage",
+            capacity: 120,
+            Type_of_parking: "Free",
+            Type_of_vehicle: "Car"
+          }
+        ]
       }
-      console.log(`Added all data for new location: ${location.name}`);
-    } else {
-      // Location exists, check for any new parking spots and add them
-      const existingSpotsInLocation = parkingSpots.filter(spot => spot.locationId === existingLocation.id);
-      const existingSpotNames = new Set(existingSpotsInLocation.map(spot => spot.name));
-      
-      for (const spot of location.data) {
-        if (!existingSpotNames.has(spot.Name_of_parking_place)) {
-          const newSpot = {
-            locationId: existingLocation.id,
-            name: spot.Name_of_parking_place,
-            slots: spot.capacity,
-            available: spot.capacity,
-            pricePerHour: spot.Type_of_parking === "Paid" ? 1 : 0,
-            typeOfVehicle: spot.Type_of_vehicle,
-          };
-          await addDoc(parkingCollection, newSpot);
-          console.log(`Added new spot to existing location (${location.name}): ${newSpot.name}`);
+    ];
+
+    const uploadInitialData = async () => {
+      const locationsCollection = collection(db, `artifacts/${appId}/public/data/locations`);
+      const parkingCollection = collection(db, `artifacts/${appId}/public/data/parking_spots`);
+
+      for (const location of initialData) {
+        if (!location?.name || !Array.isArray(location.data)) continue;
+
+        const existingLocation = locations.find(loc => loc.name === location.name);
+        if (!existingLocation) {
+          const newLocationRef = doc(locationsCollection);
+          const newLocationId = newLocationRef.id;
+
+          await setDoc(newLocationRef, { name: location.name });
+
+          for (const spot of location.data) {
+            if (!spot?.Name_of_parking_place || !spot?.capacity) continue;
+            const newSpot = {
+              locationId: newLocationId,
+              name: spot.Name_of_parking_place,
+              slots: spot.capacity,
+              available: spot.capacity,
+              pricePerHour: spot.Type_of_parking === "Paid" ? 1 : 0,
+              typeOfVehicle: spot.Type_of_vehicle
+            };
+            await addDoc(parkingCollection, newSpot);
+          }
         }
       }
-    }
-  }
-};
-uploadInitialData();
+    };
 
-  }, [isAuthReady, db, appId, locations, parkingSpots]);
+    uploadInitialData();
+  }, [isAuthReady, db, appId, locations]);
 
-  // Listener for bookings of the logged-in user
+  // Bookings listener
   useEffect(() => {
     if (!isAuthReady || !db || !loginUserId) {
       setBookings([]);
       return;
     }
-    
+
     const bookingsCollection = collection(db, `artifacts/${appId}/public/data/bookings`);
     const q = query(bookingsCollection, where("userId", "==", loginUserId));
 
@@ -216,7 +198,7 @@ uploadInitialData();
     return () => bookingsUnsub();
   }, [isAuthReady, db, appId, loginUserId]);
 
-  // Booking submission handler
+  // Booking submission
   const handleBookSubmit = async (spotId, bookingDetails) => {
     if (!db || !auth) {
       openModal("Error", "Application not ready. Please try again.", false);
@@ -237,8 +219,8 @@ uploadInitialData();
       const spotRef = doc(db, `artifacts/${appId}/public/data/parking_spots`, spotId);
       const spotDoc = await getDoc(spotRef);
       if (spotDoc.exists()) {
-        const currentAvailable = spotDoc.data().available;
-        await updateDoc(spotRef, { available: currentAvailable > 0 ? currentAvailable - 1 : 0 });
+        const currentAvailable = spotDoc.data().available ?? 0;
+        await updateDoc(spotRef, { available: Math.max(currentAvailable - 1, 0) });
       }
 
       openModal(
@@ -254,23 +236,20 @@ uploadInitialData();
     }
   };
 
-  // Vacate space handler
+  // Vacate space
   const handleVacateSpace = async (bookingId) => {
     if (!db || !loginUserId) return false;
-    
+
     try {
       const bookingToVacate = bookings.find((b) => b.id === bookingId);
-      if (!bookingToVacate) {
-        console.error("Booking not found.");
-        return false;
-      }
-      
+      if (!bookingToVacate) return false;
+
       const spotRef = doc(db, `artifacts/${appId}/public/data/parking_spots`, bookingToVacate.spotId);
       const bookingRef = doc(db, `artifacts/${appId}/public/data/bookings`, bookingId);
 
       const spotDoc = await getDoc(spotRef);
       if (spotDoc.exists()) {
-        const currentAvailable = spotDoc.data().available;
+        const currentAvailable = spotDoc.data().available ?? 0;
         await updateDoc(spotRef, { available: currentAvailable + 1 });
       }
       await deleteDoc(bookingRef);
@@ -299,7 +278,16 @@ uploadInitialData();
       <div className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Routes>
           <Route path="/" element={<LandingPage />} />
-          <Route path="/dashboard" element={<Dashboard parkingSpots={parkingSpots} locations={locations} />} />
+          <Route
+            path="/dashboard"
+            element={
+              <Dashboard
+                parkingSpots={parkingSpots}
+                locations={locations}
+                onBookNow={handleBookSubmit} // ✅ passed function
+              />
+            }
+          />
           <Route
             path="/book/:spotId"
             element={

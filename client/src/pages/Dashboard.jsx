@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
-export default function Dashboard({ parkingSpots, locations, onBookNow }) {
+export default function Dashboard({ parkingSpots, locations }) {
   const [selectedLocationId, setSelectedLocationId] = useState("");
+  const navigate = useNavigate();
 
   const filteredParking = selectedLocationId
     ? parkingSpots.filter(p => p.locationId === selectedLocationId)
@@ -64,7 +66,7 @@ export default function Dashboard({ parkingSpots, locations, onBookNow }) {
 
                 <div className="mt-4">
                   <button
-                    onClick={() => onBookNow(spot)}
+                    onClick={() => navigate(`/book/${spot.id}`)}
                     disabled={spot.available === 0}
                     className={`w-full py-2 px-4 rounded-lg font-semibold transition-colors
                       ${spot.available > 0
@@ -78,7 +80,9 @@ export default function Dashboard({ parkingSpots, locations, onBookNow }) {
               </div>
             ))
           ) : (
-            <p className="col-span-full text-center text-gray-500">No parking spots found for this location.</p>
+            <p className="col-span-full text-center text-gray-500">
+              No parking spots found for this location.
+            </p>
           )}
         </div>
       </div>

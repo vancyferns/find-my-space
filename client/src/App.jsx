@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, NavLink, useNavigate, useParams, useLocation } from 'react-router-dom';
 
+
+// inside <Routes>
+
 // Firebase imports
 import { initializeApp } from 'firebase/app';
 import {

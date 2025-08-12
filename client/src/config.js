@@ -1,4 +1,4 @@
-export const API_BASE_URL = "https://upgraded-space-adventure-wwp7r6rxp7q354xp-5000.app.github.dev";
+
 const firebaseConfig = {
     apiKey: "AIzaSyC6P7I9OA3SOjuS-i7PjsRBf16a6wOaWN0",
     authDomain: "find-my-space-1c229.firebaseapp.com",

@@ -1,8 +1,6 @@
 import React, { useState } from "react";
 // We'll define a simple config object to simulate a config.js file
-const config = {
-  API_BASE_URL: "https://upgraded-space-adventure-wwp7r6rxp7q354xp-5000.app.github.dev",
-};
+
 
 // We will use this component to display feedback to the user, replacing the 'alert()' calls.
 function MessageBox({ message, type, onClose }) {
